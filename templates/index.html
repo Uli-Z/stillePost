@@ -7,29 +7,55 @@
         body {
             font-family: sans-serif;
             background: #f4f4f4;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
             padding: 30px;
             margin: 0;
+            text-align: center;
         }
         h1 {
             margin-bottom: 20px;
         }
-        textarea {
+        /* Textfeld zentriert */
+        #textField {
             width: 90%;
             max-width: 800px;
-            height: 200px;
+            height: 400px;
             padding: 12px;
             font-size: 1rem;
             border-radius: 8px;
             border: 1px solid #ccc;
             resize: vertical;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0 auto 20px;
+            display: block;
         }
+        /* Button-Reihe */
+        #buttonRow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        /* Einstellungen: kleinere, dezente Selectfelder */
+        #settings {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #settings select {
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background: #fff;
+            cursor: pointer;
+        }
+        /* Allgemeine Buttons und Inputs */
         select, button, input[type="number"] {
             font-size: 1rem;
-            margin: 10px;
             padding: 10px 16px;
             border-radius: 6px;
             border: 1px solid #ccc;
@@ -39,12 +65,12 @@
         button:hover {
             background: #f0f0f0;
         }
-        #controls {
+        /* Container für Buttons und Einstellungen */
+        #controlsContainer {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            flex-direction: column;
             gap: 10px;
-            margin-bottom: 20px;
+            align-items: center;
         }
         /* Overlay inkl. Nachrichtenbereich und Ladebalken */
         #spinnerOverlay {
@@ -94,11 +120,16 @@
 </head>
 <body>
     <h1>🌀 Stille Post Übersetzer</h1>
-
-    <textarea id="textField" placeholder="Gib hier deinen Text ein..."></textarea>
-
-    <div id="controls">
-        <button onclick="loadRandomText()">🎲 Zufälligen Text laden</button>
+    <div id="textContainer">
+        <textarea id="textField" placeholder="Gib hier deinen Text ein..."></textarea>
+        <div id="buttonRow">
+            <button onclick="loadRandomText()">🎲 Zufälligen Text laden</button>
+            <button onclick="translateText()">🔁 Text übersetzen</button>
+            <input type="number" id="translateCount" value="10" min="1" max="50" style="width: 60px;">
+            <button onclick="translateMultiple()">🔄 Mehrfach übersetzen</button>
+        </div>
+    </div>
+    <div id="settings">
         <select id="language"></select>
         <select id="tone">
             <option value="random">🎲 Zufällige Stimmung</option>
@@ -117,25 +148,20 @@
             <option value="shorter">Kürzer</option>
             <option value="longer">Länger</option>
         </select>
-        <button onclick="translateText()">🔁 Text übersetzen</button>
-        <input type="number" id="translateCount" value="10" min="1" max="50" style="width: 60px;">
-        <button onclick="translateMultiple()">🔄 Mehrfach übersetzen</button>
     </div>
-
+  
     <div id="spinnerOverlay">
         <div id="translateMessage"></div>
         <div class="spinner"></div>
         <div id="progressBar"><div></div></div>
     </div>
-
+  
     <script>
-        // Lade verfügbare Sprachen vom Backend und fülle das Select-Feld
         async function loadLanguages() {
             try {
                 const response = await fetch("/api/languages");
                 const languages = await response.json();
                 const select = document.getElementById("language");
-                // Option "Zufällig" hinzufügen:
                 const optRandom = document.createElement("option");
                 optRandom.value = "random";
                 optRandom.textContent = "🌐 Zufällige Sprache";
@@ -151,7 +177,7 @@
             }
         }
         loadLanguages();
-
+  
         async function translateText() {
             const textField = document.getElementById("textField");
             const language = document.getElementById("language").value;
@@ -159,13 +185,13 @@
             const register = document.getElementById("register").value;
             const length = document.getElementById("length").value;
             const spinnerOverlay = document.getElementById("spinnerOverlay");
-            // Bei Einzelübersetzung brauchen wir keine Fortschrittsanzeige:
+            // Für Einzelübersetzung: Übersetzungsnachricht und Progressbar ausblenden
             document.getElementById("translateMessage").style.display = "none";
             document.getElementById("progressBar").style.display = "none";
             
             textField.disabled = true;
             spinnerOverlay.style.display = "flex";
-
+  
             try {
                 const response = await fetch("/api/translate", {
                     method: "POST",
@@ -185,19 +211,19 @@
             } finally {
                 spinnerOverlay.style.display = "none";
                 textField.disabled = false;
-                // Blende die Fortschrittsanzeige wieder ein (für Mehrfachübersetzung)
+                // Optionen wieder einblenden
                 document.getElementById("translateMessage").style.display = "block";
                 document.getElementById("progressBar").style.display = "block";
             }
         }
-
+  
         async function loadRandomText() {
             const textField = document.getElementById("textField");
             const spinnerOverlay = document.getElementById("spinnerOverlay");
-
+  
             textField.disabled = true;
             spinnerOverlay.style.display = "flex";
-
+  
             try {
                 const response = await fetch("/api/randomtext");
                 const result = await response.json();
@@ -209,7 +235,7 @@
                 textField.disabled = false;
             }
         }
-
+  
         async function translateMultiple() {
             const textField = document.getElementById("textField");
             const count = parseInt(document.getElementById("translateCount").value, 10);
@@ -218,12 +244,9 @@
             const length = document.getElementById("length").value;
             const spinnerOverlay = document.getElementById("spinnerOverlay");
             const progressBar = document.querySelector("#progressBar > div");
-            // Für Mehrfachübersetzung soll die Anzeige sichtbar sein:
-            document.getElementById("translateMessage").style.display = "block";
-            document.getElementById("progressBar").style.display = "block";
             spinnerOverlay.style.display = "flex";
             progressBar.style.width = "0%";
-
+  
             try {
                 const response = await fetch("/api/translate10x", {
                     method: "POST",
@@ -236,18 +259,18 @@
                         length: length
                     })
                 });
-
+  
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let text = '';
                 let finalText = '';
-
+  
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
                     text += decoder.decode(value, { stream: true });
                     const lines = text.split("\n");
-                    text = lines.pop(); // Unvollständige Zeile merken
+                    text = lines.pop();
                     for (let line of lines) {
                         if (!line.trim()) continue;
                         try {
@@ -259,7 +282,6 @@
                                 document.getElementById("translateMessage").textContent = "Übersetze in " + data.language;
                             }
                             if (data.current_text) {
-                                // Zeige aktuelle Übersetzungsversion im Textfeld
                                 textField.value = data.current_text;
                             }
                             if (data.final_text) {

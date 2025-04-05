@@ -26,7 +26,7 @@ LANGUAGES = [
     {"en": "Polish",     "de": "Polnisch 🇵🇱"},
     {"en": "Turkish",    "de": "Türkisch 🇹🇷"},
     {"en": "Arabic",     "de": "Arabisch 🇸🇦"},
-    {"en": "Hebrew",     "de": "Hebräisch 🇮🇱"},
+    {"en": "Hebrew",     "de": "Hebräisch (עִבְרִית) 🇮🇱"},
     {"en": "Chinese",    "de": "Chinesisch 🇨🇳"},
     {"en": "Japanese",   "de": "Japanisch 🇯🇵"},
     {"en": "Korean",     "de": "Koreanisch 🇰🇷"},
@@ -104,7 +104,7 @@ def translate():
                 {"role": "system", "content": "You are a professional translator who adjusts tone, register and length as requested."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.6,
+            temperature=0.3,
             max_tokens=1000
         )
         gpt_output = response.choices[0].message.content
@@ -117,20 +117,23 @@ def translate():
 @app.route('/api/randomtext', methods=['GET'])
 def get_random_text():
     try:
-        year = random.randint(-2000, 2025)
+        # Erzeuge ein zufälliges Datum zwischen 2000 v. Chr. und 2050 n. Chr.
+        year = random.randint(-2000, 2050)
         era = "v. Chr." if year < 0 else "n. Chr."
-        year_str = f"{abs(year)} {era}"
-
+        # Füge das Datum im Prompt als Kontext ein, aber weise an, es nicht zu erwähnen.
         prompt = (
-            f"Think of a well-known story, scene or event that could plausibly take place around the year {year_str}. "
-            f"It can come from literature, mythology, religion, film or history. "
-            "Summarize that scene in exactly three simple, connected sentences in **German**. "
-            "Avoid modern language or references that do not fit the time period. Use clear and understandable phrasing."
+            f"Consider a well-known story, scene or event from literature, religion, film that takes place around the year {abs(year)} {era}. "
+            "Do not mention any specific date or year in your summary. "
+            "Summarize that scene in exactly three connected sentences in German. "
+            "Use only the indicative mood. "
+            "Focus on the story, do not mention the origin or year."
+            "Do never use the word 'Jahr' or 'Jahre'."
         )
 
         system = (
-            "You are a helpful assistant that summarizes culturally or historically relevant stories "
-            "in simple German. The summaries should be three connected sentences. Avoid dialogue or poetry."
+            "You are a helpful assistant that summarizes culturally or historically relevant stories in simple German. "
+            "The summaries should be three connected sentences written in the indicative mood. Avoid dialogue or poetry. "
+            "Ensure that the story takes place around the given time, but do not mention the specific date."
         )
 
         response = client.chat.completions.create(
@@ -139,19 +142,18 @@ def get_random_text():
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt}
             ],
-            temperature=1,
+            temperature=0.8,
             max_tokens=200
         )
 
         raw_text = response.choices[0].message.content.strip()
-        return jsonify({"text": raw_text, "year": year_str})
+        return jsonify({"text": raw_text})
     except Exception as e:
         logging.error("Fehler beim Generieren eines zufälligen historischen Texts", exc_info=True)
         return jsonify({"error": "Fehler bei der Texterstellung", "details": str(e)}), 500
 
 @app.route('/api/translate10x', methods=['POST'])
 def translate_multiple():
-    # Hole die Request-Daten einmal vor dem Generator
     data = request.get_json()
     def generate(data):
         if not data or "text" not in data:
@@ -164,7 +166,6 @@ def translate_multiple():
         except ValueError:
             count = 10
 
-        # Hole auch Tone, Register und Length Auswahl
         tone_sel = data.get("tone", "random")
         register_sel = data.get("register", "random")
         length_sel = data.get("length", "equal")
@@ -193,7 +194,6 @@ def translate_multiple():
                     current_text = json.loads(gpt_output).get("text", gpt_output)
                 except Exception:
                     current_text = gpt_output
-                # Sende Fortschritt, aktuell verwendete Sprache (deutsches Label) und aktuellen Text
                 yield json.dumps({"progress": i + 1, "language": lang_obj["de"], "current_text": current_text}) + "\n"
             except Exception as e:
                 yield json.dumps({"error": f"Fehler bei Schritt {i+1}", "details": str(e)}) + "\n"
