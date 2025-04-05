@@ -8,7 +8,6 @@ A fun, experimental project in Python that mimics the classic "Telephone" game�
 2. Install the required packages:
    ```bash
    pip install flask openai
-   ´´´
 3. Set your OpenAI API key as an environment variable:
     On Windows: set OPENAI_API_KEY=your_api_key_here
     On macOS/Linux: export OPENAI_API_KEY=your_api_key_here
